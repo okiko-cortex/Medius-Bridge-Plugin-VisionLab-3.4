@@ -1,0 +1,30 @@
+{
+  "apiVersion": 7,
+  "id": "com.staybeaming.medius-bridge",
+  "name": "Medius Bridge",
+  "version": "1.2.0",
+  "author": "Stay Beaming",
+  "description": "Uses a Medius USB passthrough box as a mouse input device: VisionLabs detections steer the cursor through the box, and the box's physical mouse buttons gate activation.",
+  "runtime": "python",
+  "entry": "plugin.py",
+  "permissions": [
+    "detections.read",
+    "tracking.read",
+    "overlay.draw",
+    "ui.panel",
+    "settings.read",
+    "settings.write",
+    "files.pluginData"
+  ],
+  "subscriptions": [
+    "detections",
+    "tracking.state"
+  ],
+  "minimumVisionLabsVersion": "3.9.48",
+  "uiSchema": "ui.schema.json",
+  "python": {
+    "version": "3.11",
+    "requirements": "requirements.txt",
+    "installProject": false
+  }
+}

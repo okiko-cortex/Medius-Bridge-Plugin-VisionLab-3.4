@@ -1,0 +1,549 @@
+{
+  "id": "main",
+  "title": "Medius Bridge",
+  "subtitle": "Medius passthrough box as the mouse input for VisionLabs.",
+  "presentation": "window",
+  "width": 820,
+  "height": 700,
+  "tabs": [
+    {
+      "id": "general",
+      "title": "General",
+      "icon": ""
+    },
+    {
+      "id": "aim",
+      "title": "Aim",
+      "icon": ""
+    },
+    {
+      "id": "advanced",
+      "title": "Advanced",
+      "icon": ""
+    }
+  ],
+  "sections": [
+    {
+      "id": "connection",
+      "title": "Connection",
+      "description": "The Medius control port (USB2) must be plugged into this PC.",
+      "tab": "general",
+      "controls": [
+        {
+          "id": "enabled",
+          "type": "toggle",
+          "label": "Enabled",
+          "help": "Master switch. When off, nothing is sent to the box.",
+          "settingKey": "enabled",
+          "default": true
+        },
+        {
+          "id": "port",
+          "type": "text",
+          "label": "Serial port",
+          "help": "Leave blank to auto-detect the first Medius box (CH343, VID 1A86 / PID 55D3). Otherwise e.g. COM5.",
+          "settingKey": "port",
+          "placeholder": "auto",
+          "default": ""
+        },
+        {
+          "id": "connection_status",
+          "type": "label",
+          "label": "Status",
+          "help": "Live connection state is written to the plugin log line in Plugin Hub."
+        },
+        {
+          "id": "test_nudge",
+          "type": "button",
+          "label": "Test: nudge game-PC cursor",
+          "buttonText": "Nudge 80 right, then back",
+          "help": "Sends motion straight to the Medius box, bypassing VisionLabs. If the cursor on the game PC does not twitch, the problem is between the box and the game PC, not VisionLabs."
+        },
+        {
+          "id": "log_state",
+          "type": "button",
+          "label": "Diagnostics",
+          "buttonText": "Log box + kmbox state",
+          "help": "Writes Medius health/options and whether VisionLabs has connected to the emulator into the plugin log."
+        },
+        {
+          "id": "disable_riding",
+          "type": "toggle",
+          "label": "Turn off Medius movement riding on connect",
+          "help": "With riding on, the box only injects motion while the real mouse is moving. VisionLabs expects motion to land even when the mouse is still, so leave this on.",
+          "settingKey": "disable_riding",
+          "default": true
+        },
+        {
+          "id": "exact_timing",
+          "type": "toggle",
+          "label": "Exact timing (bypass render/spread)",
+          "help": "Sends every move with move_rel_now. Lower latency and immune to box smoothing options, but rawer motion. Try it if motion feels delayed or missing.",
+          "settingKey": "exact_timing",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "output_source_section",
+      "title": "Who drives the box",
+      "description": "Recommended: this plugin steers the box from VisionLabs' detections/tracking. KMBoxNet emulation is kept for when VisionLabs' native backend works.",
+      "tab": "general",
+      "controls": [
+        {
+          "id": "output_source",
+          "type": "dropdown",
+          "label": "Output source",
+          "settingKey": "output_source",
+          "default": "detections",
+          "options": [
+            {
+              "value": "detections",
+              "label": "This plugin (aim from VisionLabs detections/tracking)"
+            },
+            {
+              "value": "kmboxnet",
+              "label": "VisionLabs native tracking (KMBoxNet emulation)"
+            }
+          ]
+        },
+        {
+          "id": "kmbox_help",
+          "type": "label",
+          "label": "VisionLabs setup",
+          "help": "Settings > Mouse output: backend = KMBoxNet, IP = the listen IP below, port = the port below, UUID = anything (e.g. ABCD12345).",
+          "visibleWhen": {
+            "setting": "output_source",
+            "equals": "kmboxnet"
+          }
+        },
+        {
+          "id": "kmbox_ip",
+          "type": "text",
+          "label": "Listen IP",
+          "settingKey": "kmbox_ip",
+          "default": "127.0.0.1",
+          "visibleWhen": {
+            "setting": "output_source",
+            "equals": "kmboxnet"
+          }
+        },
+        {
+          "id": "kmbox_port",
+          "type": "number",
+          "label": "Listen port",
+          "settingKey": "kmbox_port",
+          "minimum": 1024,
+          "maximum": 65535,
+          "default": 8808,
+          "visibleWhen": {
+            "setting": "output_source",
+            "equals": "kmboxnet"
+          }
+        },
+        {
+          "id": "monitor_hz",
+          "type": "number",
+          "label": "Monitor report rate (Hz)",
+          "help": "How often the real mouse's button/motion state is streamed back to VisionLabs.",
+          "settingKey": "monitor_hz",
+          "minimum": 10,
+          "maximum": 1000,
+          "default": 250,
+          "visibleWhen": {
+            "setting": "output_source",
+            "equals": "kmboxnet"
+          }
+        },
+        {
+          "id": "kmbox_verbose",
+          "type": "toggle",
+          "label": "Hex-dump every kmbox packet to the log",
+          "help": "Turn on for the first run to confirm the packet format VisionLabs sends, then turn off.",
+          "settingKey": "kmbox_verbose",
+          "default": false,
+          "visibleWhen": {
+            "setting": "output_source",
+            "equals": "kmboxnet"
+          }
+        }
+      ]
+    },
+    {
+      "id": "activation",
+      "title": "Activation (plugin aim mode only)",
+      "description": "Which physical input on the real mouse (read back from the box) turns the plugin's own aim on.",
+      "tab": "general",
+      "visibleWhen": {
+        "setting": "output_source",
+        "equals": "detections"
+      },
+      "controls": [
+        {
+          "id": "activation_mode",
+          "type": "dropdown",
+          "label": "Activation",
+          "settingKey": "activation_mode",
+          "default": "hold",
+          "options": [
+            {
+              "value": "always",
+              "label": "Always on"
+            },
+            {
+              "value": "hold",
+              "label": "While mouse button is held"
+            },
+            {
+              "value": "toggle",
+              "label": "Toggle with mouse button"
+            }
+          ]
+        },
+        {
+          "id": "activation_button",
+          "type": "dropdown",
+          "label": "Mouse button",
+          "settingKey": "activation_button",
+          "default": "right",
+          "enabledWhen": {
+            "setting": "activation_mode",
+            "notEquals": "always"
+          },
+          "options": [
+            {
+              "value": "left",
+              "label": "Left"
+            },
+            {
+              "value": "right",
+              "label": "Right (ADS)"
+            },
+            {
+              "value": "middle",
+              "label": "Middle"
+            },
+            {
+              "value": "side1",
+              "label": "Side 1"
+            },
+            {
+              "value": "side2",
+              "label": "Side 2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "targeting",
+      "title": "Target selection",
+      "tab": "aim",
+      "controls": [
+        {
+          "id": "min_confidence",
+          "type": "slider",
+          "label": "Minimum confidence",
+          "settingKey": "min_confidence",
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "step": 0.05,
+          "default": 0.5
+        },
+        {
+          "id": "class_filter",
+          "type": "text",
+          "label": "Class names",
+          "help": "Comma-separated class names to aim at. Blank = every class.",
+          "settingKey": "class_filter",
+          "placeholder": "e.g. enemy, head",
+          "default": ""
+        },
+        {
+          "id": "steer_from_tracking",
+          "type": "toggle",
+          "label": "Steer from VisionLabs' tracking target directly",
+          "help": "When VisionLabs tracking reports a target, aim at its aimX/aimY straight away - VisionLabs does target choice, FOV and confidence. Detections are then used only for the frame size, the overlay, and as a fallback when tracking has no target. Turn off to use the detection filters below exclusively.",
+          "settingKey": "steer_from_tracking",
+          "default": true
+        },
+        {
+          "id": "prefer_tracking_target",
+          "type": "toggle",
+          "label": "Follow VisionLabs' selected target",
+          "help": "When VisionLabs tracking has a target, steer to that track ID. Otherwise the detection closest to centre is used.",
+          "settingKey": "prefer_tracking_target",
+          "default": true
+        },
+        {
+          "id": "use_vl_aim_point",
+          "type": "toggle",
+          "label": "Aim at VisionLabs' own aim point",
+          "help": "Uses tracking aimX/aimY (VisionLabs' head offset, lead and profile logic) instead of the box-based aim point below. Only applies while VisionLabs has a target.",
+          "settingKey": "use_vl_aim_point",
+          "default": true
+        },
+        {
+          "id": "aim_point",
+          "type": "slider",
+          "label": "Aim point (% down from top of box)",
+          "help": "0 = top edge, 50 = centre of the box.",
+          "settingKey": "aim_point",
+          "unit": "%",
+          "minimum": 0,
+          "maximum": 100,
+          "step": 1,
+          "default": 20
+        },
+        {
+          "id": "fov_radius",
+          "type": "slider",
+          "label": "Field of view radius (px)",
+          "help": "Targets further than this from the frame centre are ignored.",
+          "settingKey": "fov_radius",
+          "unit": "px",
+          "minimum": 20,
+          "maximum": 2000,
+          "step": 10,
+          "default": 300
+        }
+      ]
+    },
+    {
+      "id": "motion",
+      "title": "Motion",
+      "tab": "aim",
+      "controls": [
+        {
+          "id": "gain",
+          "type": "slider",
+          "label": "Gain",
+          "help": "Fraction of the remaining pixel error sent per step. Higher = snappier, lower = smoother.",
+          "settingKey": "gain",
+          "minimum": 0.02,
+          "maximum": 1.0,
+          "step": 0.02,
+          "default": 0.25
+        },
+        {
+          "id": "mouse_scale",
+          "type": "slider",
+          "label": "Pixels per mouse count",
+          "help": "How many screen pixels one mouse count moves the crosshair in-game. Tune until one step lands on target.",
+          "settingKey": "mouse_scale",
+          "minimum": 0.1,
+          "maximum": 10.0,
+          "step": 0.1,
+          "default": 1.0
+        },
+        {
+          "id": "max_step",
+          "type": "slider",
+          "label": "Max counts per step",
+          "settingKey": "max_step",
+          "minimum": 1,
+          "maximum": 127,
+          "step": 1,
+          "default": 30
+        },
+        {
+          "id": "deadzone",
+          "type": "slider",
+          "label": "Deadzone (px)",
+          "help": "No movement is sent while the error is inside this radius.",
+          "settingKey": "deadzone",
+          "unit": "px",
+          "minimum": 0,
+          "maximum": 50,
+          "step": 1,
+          "default": 2
+        },
+        {
+          "id": "send_hz",
+          "type": "slider",
+          "label": "Send rate (Hz)",
+          "settingKey": "send_hz",
+          "unit": "Hz",
+          "minimum": 30,
+          "maximum": 500,
+          "step": 10,
+          "default": 240
+        },
+        {
+          "id": "invert_y",
+          "type": "toggle",
+          "label": "Invert Y",
+          "settingKey": "invert_y",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "motion_curve",
+      "title": "Motion curve",
+      "description": "Fast when far from the target, tapering as it closes, so it lands without crawling or overshooting.",
+      "tab": "aim",
+      "controls": [
+        {
+          "id": "ease_enabled",
+          "type": "toggle",
+          "label": "Ease-out near target",
+          "settingKey": "ease_enabled",
+          "default": true
+        },
+        {
+          "id": "ease_radius",
+          "type": "slider",
+          "label": "Ease-out radius (px)",
+          "help": "Inside this distance the gain tapers down linearly. Larger = softer landing, smaller = snappier.",
+          "settingKey": "ease_radius",
+          "unit": "px",
+          "minimum": 10,
+          "maximum": 400,
+          "step": 5,
+          "default": 60,
+          "enabledWhen": {
+            "setting": "ease_enabled",
+            "equals": true
+          }
+        },
+        {
+          "id": "ease_floor",
+          "type": "slider",
+          "label": "Minimum gain fraction at the target",
+          "help": "How much of Gain is kept right at the target. Too low and it stalls just short; too high and it overshoots.",
+          "settingKey": "ease_floor",
+          "minimum": 0.05,
+          "maximum": 1.0,
+          "step": 0.05,
+          "default": 0.3,
+          "enabledWhen": {
+            "setting": "ease_enabled",
+            "equals": true
+          }
+        },
+        {
+          "id": "max_speed_px_s",
+          "type": "slider",
+          "label": "Max speed (px/s)",
+          "help": "Caps how fast the crosshair can be pulled, regardless of distance. Lower for a more human-looking pull.",
+          "settingKey": "max_speed_px_s",
+          "unit": "px/s",
+          "minimum": 500,
+          "maximum": 20000,
+          "step": 250,
+          "default": 6000
+        }
+      ]
+    },
+    {
+      "id": "renderer",
+      "title": "Medius renderer",
+      "description": "How the box shapes injected motion. Applied to the box immediately and persisted in its own memory.",
+      "tab": "advanced",
+      "controls": [
+        {
+          "id": "render_mode",
+          "type": "dropdown",
+          "label": "Render mode",
+          "help": "Off = plain paced fill (fastest, most mechanical). Stock / Despiked / Unsmoothed push injected motion through the ABCurves model fitted to your real mouse, fed progressively less-filtered native motion.",
+          "settingKey": "render_mode",
+          "default": "despiked",
+          "options": [
+            {
+              "value": "off",
+              "label": "Off (paced fill)"
+            },
+            {
+              "value": "stock",
+              "label": "Stock"
+            },
+            {
+              "value": "despiked",
+              "label": "Despiked (box default)"
+            },
+            {
+              "value": "unsmoothed",
+              "label": "Unsmoothed"
+            }
+          ]
+        },
+        {
+          "id": "render_full",
+          "type": "toggle",
+          "label": "Render native motion too",
+          "help": "Also passes your own mouse motion through the model. Adds latency to your real aim; leave off unless you want the texture matched exactly.",
+          "settingKey": "render_full",
+          "default": false
+        },
+        {
+          "id": "spread_pct",
+          "type": "slider",
+          "label": "Spread (%)",
+          "help": "How much of the interval between commands an injected delta is released across. 0 = whole delta on the next report (snappy, steppy); 100 = spread evenly (smooth, ~half an interval of latency); above 100 carries a backlog. Ignored when Exact timing is on.",
+          "settingKey": "spread_pct",
+          "unit": "%",
+          "minimum": 0,
+          "maximum": 150,
+          "step": 5,
+          "default": 100
+        },
+        {
+          "id": "frame_width",
+          "type": "number",
+          "label": "Frame width override",
+          "help": "0 = take it from the detections stream. Set only if tracking has a target but the log says the frame size is unknown.",
+          "settingKey": "frame_width",
+          "default": 0,
+          "step": 1,
+          "minimum": 0,
+          "maximum": 16384
+        },
+        {
+          "id": "frame_height",
+          "type": "number",
+          "label": "Frame height override",
+          "help": "0 = auto (see Frame width).",
+          "settingKey": "frame_height",
+          "default": 0,
+          "step": 1,
+          "minimum": 0,
+          "maximum": 16384
+        }
+      ]
+    },
+    {
+      "id": "debug",
+      "title": "Debug",
+      "tab": "advanced",
+      "controls": [
+        {
+          "id": "show_overlay",
+          "type": "toggle",
+          "label": "Show target overlay",
+          "help": "Draws the chosen target and aim point on the VisionLabs preview.",
+          "settingKey": "show_overlay",
+          "default": true
+        },
+        {
+          "id": "log_tracking",
+          "type": "toggle",
+          "label": "Log tracking.state values",
+          "help": "Writes raw aimX / aimY from VisionLabs tracking to the log once per second. Useful for calibrating.",
+          "settingKey": "log_tracking",
+          "default": false
+        },
+        {
+          "id": "target_timeout_ms",
+          "type": "number",
+          "label": "Target hold (ms)",
+          "help": "How long the last target is chased after detections stop arriving.",
+          "settingKey": "target_timeout_ms",
+          "minimum": 20,
+          "maximum": 1000,
+          "default": 120
+        }
+      ]
+    }
+  ]
+}

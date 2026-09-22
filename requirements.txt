@@ -1,0 +1,7 @@
+# Medius firmware 3.4.0 needs the 3.4.0 library (protocol 7, 6 Mbaud control link).
+# PyPI still serves 3.3.1, so pull the wheel straight from the GitHub release.
+# NOTE: the release wheel is mislabelled 3.3.1 in its filename/metadata but contains the
+# 3.4.0 library (medius.version_string() == "3.4.0"). Do not "fix" this line to medius>=3.4.0:
+# pip cannot resolve that from PyPI today.
+# Offline fallback: the same wheel ships in this plugin's wheels\ folder (see README, Upgrading).
+medius @ https://github.com/K4HVH/medius/releases/download/v3.4.0/medius-3.3.1-py3-none-win_amd64.whl
