@@ -49,11 +49,10 @@ _BUTTONS = {
     "left": 0, "right": 1, "middle": 2, "side1": 3, "side2": 4,
 }
 
-# Firmware 3.4.0 moved the control link to protocol 7 at 6 Mbaud. The `medius` package opens the
-# port at the rate its own version expects, so the library and the firmware must be from the same
-# generation: medius 3.3.x (proto 6, 4 Mbaud) cannot talk to a 3.4.0 box and vice versa.
-_MIN_LIB = (3, 4, 0)
-_EXPECTED_PROTO = 7
+# Firmware 3.4.1 uses protocol 8 at 6 Mbaud. The `medius` package opens the port at the rate its
+# own version expects, so the library and firmware must be from the same generation.
+_MIN_LIB = (3, 4, 1)
+_EXPECTED_PROTO = 8
 
 
 def _lib_version() -> tuple:
@@ -269,11 +268,11 @@ def on_start():
     _safe_log(f"Medius Bridge starting (medius lib {getattr(medius, 'version_string', lambda: '?')()}, "
               f"abi {getattr(medius, 'abi_version', lambda: '?')()})")
     if _lib_too_old():
-        _safe_log("Medius Bridge: the installed 'medius' package is older than 3.4.0 and speaks protocol 6 at "
-                  "4 Mbaud; a box on firmware 3.4.0 answers on protocol 7 at 6 Mbaud. VisionLabs did not "
+        _safe_log("Medius Bridge: the installed 'medius' package is older than 3.4.1 and speaks an older "
+                  "protocol; a box on firmware 3.4.1 answers on protocol 8 at 6 Mbaud. VisionLabs did not "
                   "rebuild the plugin environment - delete <VisionLabs>\\PythonEnvs\\com_staybeaming_medius_bridge "
-                  "and restart VisionLabs, or pip-install wheels\\medius-3.3.1-py3-none-win_amd64.whl from the plugin "
-                  "folder into that environment's python.exe (that file IS the 3.4.0 build; see README, Upgrading).")
+                  "and restart VisionLabs, or pip-install the matching 3.4.1 wheel from the plugin folder into that "
+                  "environment's python.exe (see README, Upgrading).")
     _start_threads()
 
 
@@ -512,11 +511,11 @@ def _link_main() -> None:
             status = getattr(exc, "status", None)
             sname = getattr(status, "name", str(status))
             if "PROTO" in sname.upper() or "NO_REPLY" in sname.upper() or "TIMEOUT" in sname.upper():
-                # A 3.3.x library on a 3.4.0 box (or the reverse) lands here: wrong baud, wrong
+                # An older library on a 3.4.1 box (or the reverse) lands here: wrong baud, wrong
                 # protocol byte, or no answer at all. Say so instead of retrying silently.
                 _safe_log(f"Medius Bridge: open failed: {sname} {exc.message} - this is what a library/firmware "
                           f"mismatch looks like (lib {'.'.join(map(str, _lib_version()))} wants proto "
-                          f"{_EXPECTED_PROTO if not _lib_too_old() else 6}). Box on fw 3.4.0 needs medius>=3.4.0; "
+                          f"{_EXPECTED_PROTO}). Box on fw 3.4.1 needs medius 3.4.1; "
                           f"see the log line at start-up for how to rebuild the environment. (waiting)")
             else:
                 _safe_log(f"Medius Bridge: open failed: {sname} {exc.message} (waiting)")
@@ -534,7 +533,7 @@ def _link_main() -> None:
                       f"{'.'.join(map(str, _lib_version()))}")
             if v.proto_ver != _EXPECTED_PROTO:
                 _safe_log(f"Medius Bridge: box speaks proto {v.proto_ver}, this plugin was built for proto "
-                          f"{_EXPECTED_PROTO} (fw 3.4.0). Update the box at medius.k4tech.net/dashboard/update "
+                      f"{_EXPECTED_PROTO} (fw 3.4.1). Update the box at medius.k4tech.net/dashboard/update "
                           f"or pin an older medius in requirements.txt.")
         except MediusError as exc:
             _safe_log(f"Medius Bridge: handshake query failed: {exc.message}")
@@ -598,7 +597,7 @@ def _log_box_state(dev) -> None:
     try:
         h = dev.query_health()
         extra = " ".join(f"{k}={getattr(h, k)}" for k in ("rate_confident", "transform_on", "rewrite_on", "patch_on")
-                         if hasattr(h, k))  # fields added by fw 3.4.0 (16-bit health word)
+                         if hasattr(h, k))  # fields added by fw 3.4.1 (16-bit health word)
         _safe_log(f"Medius health: link={h.link_up} mouse={h.mouse_attached} clone_configured={h.clone_configured} "
                   f"injection_active={h.injection_active} lock_on={h.lock_on} catch_on={h.catch_on} {extra}")
         if not h.clone_configured:

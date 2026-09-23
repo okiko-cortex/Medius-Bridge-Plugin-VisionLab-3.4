@@ -1,8 +1,8 @@
 # Medius Bridge (VisionLabs API v7, Python) — targets VisionLabs 3.9.48+ (built against 3.9.59)
 
-> **v1.1.0 — requires Medius firmware 3.4.0 (protocol 7, control link at 6 Mbaud).**
-> Firmware 3.4.0 changed the wire protocol and the port speed. The `medius` Python package must be
-> the 3.4.0 build to talk to it. A 3.3.x package on a 3.4.0 box (or the reverse) shows up as
+> **v1.3.0 — requires Medius firmware 3.4.1 (protocol 8, control link at 6 Mbaud).**
+> Firmware 3.4.1 changed the wire protocol and library ABI. The `medius` Python package must be
+> the 3.4.1 build to talk to it. An older package on a 3.4.1 box (or the reverse) shows up as
 > `open failed: ... NO_REPLY / BAD_PROTO_VER / QUERY_TIMEOUT` in the plugin log, or as a connection
 > that appears and drops. See *Upgrading* below — and note the PyPI gotcha there.
 
@@ -11,7 +11,7 @@ Makes a **Medius** USB passthrough box the mouse input for VisionLabs.
 ```
  real mouse ──USB3──► Medius box ──USB1──► game PC
                           ▲
-                          │ USB2 (CH343 serial, 4 Mbaud)
+                          │ USB2 (CH343 serial, 6 Mbaud)
                           │
               VisionLabs PC running this plugin
 ```
@@ -40,21 +40,19 @@ requirements.txt   medius  (installed by VisionLabs into its PythonEnvs)
 1. Plug the box's **USB2** (control) port into the PC running VisionLabs. Windows shows it as a CH343 COM port (VID `1A86` / PID `55D3`).
 2. Either (a) this folder is already unpacked at `<VisionLabs>\Plugins\MediusBridge\` — restart VisionLabs and it appears in the Plugins page; or (b) VisionLabs → Plugins → Install → pick `Medius_Bridge.vlplugin` (a copy sits in `<VisionLabs>\PluginExamples\`).
 3. Enable it and approve the permission review.
-4. First start takes a little longer while VisionLabs builds the Python environment and pip-installs `medius`. Watch the plugin's log line: it should say `connected fw 3.3.4 proto 6 ...`.
+4. First start takes a little longer while VisionLabs builds the Python environment and pip-installs `medius`. Watch the plugin's log line: it should say `connected fw 3.4.1 proto 8 ...`.
 
-## Upgrading (firmware 3.4.0 / plugin 1.1.0)
+## Upgrading (firmware 3.4.1 / plugin 1.3.0)
 
-**The PyPI gotcha (as of 2026-09-19):** `pip install medius` still gives 3.3.1. The 3.4.0 library only exists on the GitHub release page, and the wheel there is *mislabelled* `medius-3.3.1-py3-none-win_amd64.whl` (its metadata says 3.3.1, but the DLL inside is 3.4.0 with `pan`, `transform`, `raw`, proto 7). So `requirements.txt` does not say `medius>=3.4.0` — pip can't resolve that — it points at the release URL directly. A copy of that wheel is in `wheels\` inside the plugin folder for offline installs. The plugin tells the two apart at runtime with `medius.version_string()`, which reads the DLL, not the package metadata.
+**Important:** firmware 3.4.1 uses control protocol 8 and library ABI 8. Do not keep an older `medius` package in VisionLabs' cached environment.
 
-1. Update the box first: https://medius.k4tech.net/dashboard/update (one click). Use the 3.4.0 dashboard — it opens the port at 6 Mbaud after the update.
-2. Install this plugin package over the old one (VisionLabs → Plugins → Install → `Medius_Bridge.vlplugin`). The manifest version is now 1.1.0 and `requirements.txt` changed, which should make VisionLabs rebuild the Python environment. Check `PluginLogs\PythonSetup\com_staybeaming_medius_bridge-pip-requirements.log`: it must show the wheel being fetched from `github.com/K4HVH/medius/releases/download/v3.4.0/`.
+1. Update the box first: https://medius.k4tech.net/dashboard/update (one click). After updating, the box uses protocol 8.
+2. Install this plugin package over the old one (VisionLabs → Plugins → Install → `Medius_Bridge.vlplugin`). The manifest version is now 1.3.0 and `requirements.txt` points to the 3.4.1 wheel. Check `PluginLogs\PythonSetup\com_staybeaming_medius_bridge-pip-requirements.log` if setup does not complete.
 3. If the pip log still shows PyPI's `medius-3.3.1` or was not rewritten at all (VisionLabs reused the old environment): quit VisionLabs, delete `<VisionLabs>\PythonEnvs\com_staybeaming_medius_bridge`, start VisionLabs again. The environment is recreated from scratch on the next plugin start.
-4. Manual fallback (no GitHub access from that PC, or you just want it done now): quit VisionLabs and run, in PowerShell,
-   `& "D:\VisionLabsAI_3.9.59\PythonEnvs\com_staybeaming_medius_bridge\python.exe" -m pip install --force-reinstall --no-deps "D:\VisionLabsAI_3.9.59\Plugins\MediusBridge\wheels\medius-3.3.1-py3-none-win_amd64.whl"`
-   then `& "...\python.exe" -c "import medius; print(medius.version_string(), medius.abi_version())"` must print `3.4.0 7`.
-5. The plugin's first log line prints `medius lib 3.4.0, abi 7` and, on connect, `fw 3.4.0 proto 7`. If either is older it logs exactly what to do.
+4. Manual fallback: quit VisionLabs, remove the cached environment, and start VisionLabs again so it recreates the environment from `requirements.txt`.
+5. The plugin's first log line should print `medius lib 3.4.1, abi 8` and, on connect, `fw 3.4.1 proto 8`. If either is older, repeat step 4.
 
-Nothing else changed in how the plugin drives the box: `move_rel`, `press`/`soft_release`, `input_events`, `set_render`/`set_spread` and the health queries all kept their names in 3.4.0. What 3.4.0 adds (AC-Pan axis, buttons past 5, axis transforms, the advanced control layer) is not used here.
+The plugin's existing mouse controls continue to work. Medius 3.4.1 also adds packet-based CLIP triggers and CLIP entries for pan, raw reports, and control transfers. Those capabilities are available in the updated library, but this end-user plugin does not require users to configure them.
 
 ## Recommended mode (v1.2.0): this plugin drives the box, VisionLabs only detects
 
@@ -74,7 +72,7 @@ VisionLabs tracking ──KMBoxNet backend──► UDP 127.0.0.1:8808 ──►
                     ◄── kmbox "monitor" stream (real buttons/motion) ◄── Medius catch
 ```
 
-Setup, once the plugin shows `connected fw 3.3.4`:
+Setup, once the plugin shows `connected fw 3.4.1 proto 8`:
 
 1. VisionLabs → Settings → mouse output backend = **KMBoxNet**, IP `127.0.0.1`, port `8808`, UUID anything (e.g. `ABCD12345`).
 2. Plugin → General → *Output source* = **VisionLabs native tracking (KMBoxNet emulation)** (the default).
